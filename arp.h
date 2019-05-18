@@ -21,9 +21,18 @@ struct Arp {
 void append_to_dict(struct Dict* dict, struct Arp* mapping);
 
 
+/**
+ * Returns the port corresponding to the IP 
+ * value ipAddr that exists within dict.
+ *
+ * If val is not present, return NULL
+ */
+char* get(struct Dict* dict, char* ipAddr);
+
+
 void display_dict_entries(struct Dict* dict);
 
 
-void findMapping(char* ip, struct Dict* dict);
+char* findMapping(char* ip, struct Dict* dict, int cliMode);
 
 #endif 

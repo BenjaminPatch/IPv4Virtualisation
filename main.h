@@ -9,5 +9,7 @@
 
 #define BUFFER 2048
 
+void run_program(struct Data* data);
+
 
 #endif

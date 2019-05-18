@@ -42,18 +42,26 @@ void display_dict_entries(struct Dict* dict) {
 
 }
 
-void findMapping(char* ip, struct Dict* dict) {
+
+char* findMapping(char* ip, struct Dict* dict, int cliMode) {
+    printf("findMapping\n");
     struct Dict* current = dict;
     strtok(ip, "\n");
+    printf("ip: %s\n", ip);
+    printf("YEEEEEEEET\n");
 
-    while (current != NULL) {
+    while (current->val != NULL && current != NULL) {
+        printf("current: %s\n", ((struct Arp*)current->val)->ipAddr);
         if (!strcmp(((struct Arp*)current->val)->ipAddr, ip)) {
-            printf("%s\n", ((struct Arp*)current->val)->llAddr);
-            return;
+            if (cliMode)
+                printf("%s\n", ((struct Arp*)current->val)->llAddr);
+            return ((struct Arp*)current->val)->llAddr;
         }
         current = current->next;
     }
-    printf("None\n");
+    if (cliMode)
+        printf("None\n");
+    return NULL;
 
 }
 
