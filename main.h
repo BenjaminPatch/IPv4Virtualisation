@@ -3,11 +3,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
+#include <semaphore.h>
+#include <pthread.h>
 
 #include "process.h"
+#include "listen.h"
 
-#define BUFFER 2048
 
 void run_program(struct Data* data);
 

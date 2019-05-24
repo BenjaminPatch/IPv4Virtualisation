@@ -3,12 +3,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include <arpa/inet.h>
 
 #include "data.h"
 
 #define VER_HLEN 69 // version: 0100. headerLen: 0101 (no options)
+#define BUFFER 8192
 
 typedef struct {
     uint8_t   ver_hlen;   /* Header version and length (dwords). */
@@ -27,11 +29,11 @@ typedef struct {
 
 typedef struct {
     IpHdr header;
-    char* payload;
+    char payload[BUFFER];
 } IpPack;
 
 
-void construct_packet(IpHdr newPack, char* input);
+void construct_packet(IpPack* newPack, struct Data* data, uint32_t dstIp);
 
 
 #endif

@@ -43,15 +43,11 @@ void display_dict_entries(struct Dict* dict) {
 }
 
 
-char* findMapping(char* ip, struct Dict* dict, int cliMode) {
-    printf("findMapping\n");
-    struct Dict* current = dict;
+char* findMapping(char* ip, struct Data* data, int cliMode) {
+    struct Dict* current = data->arpMappings;
     strtok(ip, "\n");
-    printf("ip: %s\n", ip);
-    printf("YEEEEEEEET\n");
 
     while (current->val != NULL && current != NULL) {
-        printf("current: %s\n", ((struct Arp*)current->val)->ipAddr);
         if (!strcmp(((struct Arp*)current->val)->ipAddr, ip)) {
             if (cliMode)
                 printf("%s\n", ((struct Arp*)current->val)->llAddr);
@@ -61,6 +57,9 @@ char* findMapping(char* ip, struct Dict* dict, int cliMode) {
     }
     if (cliMode)
         printf("None\n");
+    sem_wait(data->outputLock);
+    printf("No ARP entry found\n");
+    fflush(stdout);
     return NULL;
 
 }

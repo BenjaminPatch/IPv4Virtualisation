@@ -5,6 +5,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "data.h"
+
 #define LARGEST_PORT_LEN 6
 #define LONGEST_IP_PLUS_NULL 16
 
@@ -33,6 +35,6 @@ char* get(struct Dict* dict, char* ipAddr);
 void display_dict_entries(struct Dict* dict);
 
 
-char* findMapping(char* ip, struct Dict* dict, int cliMode);
+char* findMapping(char* ip, struct Data* data, int cliMode);
 
 #endif 

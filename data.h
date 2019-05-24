@@ -1,6 +1,8 @@
 #ifndef DATA_H
 #define DATA_H
 
+#include <semaphore.h>
+
 #define LONGEST_IP_WITH_NULL 16
 
 struct Data {
@@ -12,8 +14,7 @@ struct Data {
     struct Dict* arpMappings; /* A dictionary mapping various ip Addresses to
                                * link layer addresses (port nums) */
     int idNum; // ID of next datagram to send
-
-
+    sem_t* outputLock;
 };
 
 #endif 

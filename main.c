@@ -1,19 +1,19 @@
 #include "main.h"
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/ip.h>
-#include <errno.h>
+sem_t outputLock;
 
 int main(int argc, char** argv) {
     if (argc != 3) {
         fprintf(stderr, "argc != 3\n");
         exit(1);
     }
+    struct Data* data;
+    struct Dict* arpMappings;
+    pthread_t listenThread;
 
     /* Initialise data, which holds info about whole network */
-    struct Data* data = (struct Data*)malloc(sizeof(struct Data));
+    data = (struct Data*)malloc(sizeof(struct Data));
     memset(data, 0, sizeof(struct Data));
-    struct Dict* arpMappings = (struct Dict*)malloc(sizeof(struct Dict));
+    arpMappings = (struct Dict*)malloc(sizeof(struct Dict));
     arpMappings->val = NULL;
     arpMappings->next = NULL;
     data->arpMappings = arpMappings;
@@ -23,7 +23,13 @@ int main(int argc, char** argv) {
     if (!(data->hostLL = atoi(argv[2])))
         fprintf(stderr, "llAddr Not a Number\n");
 
+    is_in_subnet(data, argv[3]);
+    sem_init(&outputLock, 0, 1);
+    data->outputLock = &outputLock;
+    pthread_create(&listenThread, NULL, listen_for_message, (void*)data);
+
     run_program(data);
+    return 0;
 }
 
 void run_program(struct Data* data) {
@@ -51,5 +57,6 @@ void run_program(struct Data* data) {
         } else if (!strncmp(input, "msg", 3)) {
             if (send_msg(data, input)) fprintf(stderr, "error in send_msg\n");
         }
+        sem_post(data->outputLock);
     }
 }

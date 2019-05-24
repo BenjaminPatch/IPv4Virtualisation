@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -11,6 +12,7 @@
 
 #include "arp.h"
 #include "data.h"
+#include "packets.h"
 
 #define BUFF 8192
 
@@ -44,5 +46,7 @@ void strip_quotes(char* section, char* payload);
 
 void split_input(char* input, char** sections, int oneSpace);
 
+
+int is_in_subnet(struct Data* data, char* ip);
 
 #endif 
