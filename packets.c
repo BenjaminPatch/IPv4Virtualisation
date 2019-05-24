@@ -6,7 +6,7 @@ void construct_packet(IpPack* newPack, struct Data* data, uint32_t dstIp) {
     newPack->header.length = htons(20 + strlen(newPack->payload));
     newPack->header.ident = htons(data->idNum);
     newPack->header.fragment = 0;
-    newPack->header.timetolive = 5;
+    newPack->header.timetolive = 10;
     newPack->header.protocol = 0;
     newPack->header.checksum = 0;
     uint32_t srcAddr;

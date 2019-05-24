@@ -20,6 +20,6 @@ packets.o: packets.c
 listen.o: listen.c
 	gcc -c -g $(CFLAGS) listen.c -o listen.o
 
-assign3: main.o process.o arp.o packets.o
+assign3: main.o process.o arp.o packets.o listen.o
 	gcc $(CFLAGS) main.o arp.o packets.o listen.o process.o -o assign3 -lm
 

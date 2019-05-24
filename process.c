@@ -123,10 +123,7 @@ int send_msg(struct Data* data, char* input) {
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
         perror("socket()");
     }
-    char* byteArray = (char*)newPack;
-    for (size_t i = 0; i < 29; i++) {
-        printf("%d ", byteArray[i]);
-    }
+    printf("port sending to: %d\n", receiverData.sin_port);
     if (sendto(sockfd, (void*)newPack, 20 + strlen(newPack->payload), 
             0, (struct sockaddr*)&receiverData, sizeof(receiverData)) == -1) {
         printf("sendto\n");

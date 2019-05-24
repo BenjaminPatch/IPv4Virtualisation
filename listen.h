@@ -14,6 +14,14 @@
 #include "data.h"
 #include "packets.h"
 
+#define LONGEST_IP_PLUS_NULL 16
+
 void* listen_for_message(void* data);
+
+
+void non_zero_protocol(IpPack* incPack);
+
+
+void zero_protocol(IpPack* incPack);
 
 #endif

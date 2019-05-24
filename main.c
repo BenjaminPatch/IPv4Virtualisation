@@ -48,7 +48,7 @@ void run_program(struct Data* data) {
             if (arp_set(input, data)) fprintf(stderr, "error in arp_set\n");
         } else if (!strncmp(input, "arp get", 7)) {
             if (arp_get(input, data)) fprintf(stderr, "error in arp_get\n");
-        } else if (!strcmp(input, "exit")) {
+        } else if (!strncmp(input, "exit", 4)) {
             exit(0);
         } else if (!strncmp(input, "mtu set", 7)) {
             if (mtu_set(input, data)) fprintf(stderr, "error in mtu_set\n");
