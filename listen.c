@@ -27,6 +27,7 @@ void* listen_for_message(void* data) {
     while (1) {
         int n;
         socklen_t len;
+        len = sizeof(senderDetails);
         memset(&senderDetails, 0, sizeof(senderDetails));
         memset(incPack, 0, sizeof(IpPack));
         n = recvfrom(sockfd, incPack, hostData->MTU, 0, 

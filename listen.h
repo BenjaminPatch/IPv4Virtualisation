@@ -11,7 +11,6 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
-#include "data.h"
 #include "packets.h"
 
 #define LONGEST_IP_PLUS_NULL 16

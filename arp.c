@@ -47,7 +47,7 @@ char* findMapping(char* ip, struct Data* data, int cliMode) {
     struct Dict* current = data->arpMappings;
     strtok(ip, "\n");
 
-    while (current->val != NULL && current != NULL) {
+    while (current != NULL && current->val != NULL) {
         if (!strcmp(((struct Arp*)current->val)->ipAddr, ip)) {
             if (cliMode)
                 printf("%s\n", ((struct Arp*)current->val)->llAddr);

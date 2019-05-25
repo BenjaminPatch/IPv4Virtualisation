@@ -34,7 +34,7 @@ int arp_set(char* input, struct Data* data) {
     memset(sections[2], 0, LARGEST_PORT_LEN);
 
     // Split input so we can easily access ipAddr and llAddr
-    split_input(input, sections, 0);
+    split_input(input, sections, 0, 7);
 
     // Create arp struct based on the split input
     struct Arp* newArp = (struct Arp*)malloc(sizeof(struct Arp)); 
@@ -65,6 +65,8 @@ int arp_get(char* input, struct Data* data) {
 }
 
 
+
+
 int mtu_set(char* input, struct Data* data) {
     strtok(input, "\n");
     data->MTU = atoi(input + 8);
@@ -72,11 +74,19 @@ int mtu_set(char* input, struct Data* data) {
 }
 
 
-int mtu_get(struct Data* data) {
+
+
+int mtu_get(struct Data* data, int returnMode) {
     sem_wait(data->outputLock);
     printf("%d\n", data->MTU);
+    if (returnMode) {
+        return data->MTU;
+    }
     return 0;
 }
+
+
+
 
 void parse_ipAddr(struct Data* data, char* argv1) {
     const char delim[2] = "/";
@@ -88,17 +98,38 @@ void parse_ipAddr(struct Data* data, char* argv1) {
 }
 
 
+
+
 int send_msg(struct Data* data, char* input) {
-    int sockfd, port;
+    int port;
+    uint32_t fakeIp;
     struct sockaddr_in receiverData;
     char** sections = (char**)malloc(sizeof(char*) * 3);
     memset(sections, 0, sizeof(char*) * 3);
-    split_input(input, sections, 1);
+    split_input(input, sections, 1, 4);
 
-    if (!findMapping(sections[1], data, 0)) {
-        return 0;
+    // Strip double-quotes 
+    char payload[strlen(sections[2]) - 1];
+    memset(payload, 0, strlen(sections[2]) - 1);
+    strncpy(payload, sections[2] + 1, strlen(sections[2]) - 2);
+
+    if (is_in_subnet(data, sections[1])) {
+        inet_pton(AF_INET, sections[1], &fakeIp);
+        if (!findMapping(sections[1], data, 0)) {
+            return 0;
+        }
+        port = atoi(findMapping(sections[1], data, 0));
+    } else {
+        // If not in subnet, check if gateway has been assigned a ll address
+        // (a.k.a a port), if so, proceed with that as the receiver, but final
+        // dst. IP still unchanged
+        if (!data->gw) {
+            printf("No ARP entry found\n");
+            return 0;
+        }
+        inet_pton(AF_INET, data->gw, &fakeIp);
+        port = atoi(findMapping(data->gw, data, 0));
     }
-    port = atoi(findMapping(sections[1], data, 0));
 
     // Instantiate sockaddr_in data. IPv4, port from ARP mappings and localhost
     memset(&receiverData, 0, sizeof(receiverData));
@@ -108,36 +139,16 @@ int send_msg(struct Data* data, char* input) {
 
     IpPack* newPack = (IpPack*)malloc(sizeof(IpPack));
     memset(newPack, 0, sizeof(IpPack));
-
-    // Strip double-quotes 
-    char payload[strlen(sections[2]) - 1];
-    memset(payload, 0, strlen(sections[2]) - 1);
-    strncpy(payload, sections[2] + 1, strlen(sections[2]) - 2);
-
-    memset(newPack->payload, 0, BUFF);
-    strcpy(newPack->payload, payload);
-    uint32_t fakeIp;
-    inet_pton(AF_INET, sections[1], &fakeIp);
-    construct_packet(newPack, data, receiverData.sin_addr.s_addr);
-
-    if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
-        perror("socket()");
-    }
-    printf("port sending to: %d\n", receiverData.sin_port);
-    if (sendto(sockfd, (void*)newPack, 20 + strlen(newPack->payload), 
-            0, (struct sockaddr*)&receiverData, sizeof(receiverData)) == -1) {
-        printf("sendto\n");
-    }
-
+    construct_payload(data, payload, receiverData, newPack, fakeIp);
     return 0;
 }
 
 
-void split_input(char* input, char** sections, int oneSpace) {
+void split_input(char* input, char** sections, int oneSpace, int len) {
     int sectionCounter = 0;
     int indexInSection = 0;
     int firstSpace = oneSpace;
-    int lenOfMsg = 4; // The length of "msg "
+    int lenOfMsg = len; // The length of "msg "
     sections[0] = (char*)malloc(sizeof(char) * lenOfMsg);
     sections[1] = (char*)malloc(sizeof(char) * LONGEST_IP_WITH_NULL);
     sections[2] = (char*)malloc(sizeof(char) * BUFF);
@@ -165,6 +176,8 @@ void split_input(char* input, char** sections, int oneSpace) {
             indexInSection = 0;
             continue;
         } else {
+            //printf("sectionCounter: %d, indexInSection: %d, char: %c\n", 
+            //        sectionCounter, indexInSection, input[i]);
             sections[sectionCounter][indexInSection] = input[i];
             indexInSection++;
         }
@@ -179,7 +192,7 @@ int is_in_subnet(struct Data* data, char* ip) {
     int mask;
     char ipString[LONGEST_IP_PLUS_NULL];
     memset(ipString, 0, LONGEST_IP_PLUS_NULL);
-    strcpy(ipString, "123.123.0.1");
+    strcpy(ipString, ip);
     mask = (int)pow(2,32) - ((int)pow(2, 32 - (data->cidrLen + 1)) - 1);
     inet_pton(AF_INET, data->hostIP, &hostIP);
     inet_pton(AF_INET, ipString, &givenIP);
@@ -201,3 +214,4 @@ int is_in_subnet(struct Data* data, char* ip) {
 
     return 0;
 }
+

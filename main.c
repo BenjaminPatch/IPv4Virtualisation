@@ -23,7 +23,6 @@ int main(int argc, char** argv) {
     if (!(data->hostLL = atoi(argv[2])))
         fprintf(stderr, "llAddr Not a Number\n");
 
-    is_in_subnet(data, argv[3]);
     sem_init(&outputLock, 0, 1);
     data->outputLock = &outputLock;
     pthread_create(&listenThread, NULL, listen_for_message, (void*)data);
@@ -53,7 +52,7 @@ void run_program(struct Data* data) {
         } else if (!strncmp(input, "mtu set", 7)) {
             if (mtu_set(input, data)) fprintf(stderr, "error in mtu_set\n");
         } else if (!strncmp(input, "mtu get", 7)) {
-            if (mtu_get(data)) fprintf(stderr, "error in arp_get\n");
+            if (mtu_get(data, 0)) fprintf(stderr, "error in arp_get\n");
         } else if (!strncmp(input, "msg", 3)) {
             if (send_msg(data, input)) fprintf(stderr, "error in send_msg\n");
         }
