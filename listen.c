@@ -53,7 +53,7 @@ void* listen_for_message(void* data) {
             }
             non_zero_protocol(incPack);
         } else {
-            zero_protocol(incPack);
+            zero_protocol(incPack, sockfd, hostData);
         }
         if (sem_post(hostData->outputLock)) {
             fprintf(stderr, "sem_post failed with errno: %s\n", 
@@ -79,20 +79,80 @@ void non_zero_protocol(IpPack* incPack) {
         printf("0");
     }
     printf("%x\n> ", incPack->header.protocol);
+    fflush(stdout);
 }
 
 
-void zero_protocol(IpPack* incPack) {
+void zero_protocol(IpPack* incPack, int sockfd, struct Data* hostData) {
+    IpPack* allPackets = (IpPack*)calloc(1, sizeof(IpPack));
+    struct sockaddr_in senderDetails;
+    int numOfPacks = 1, n = 0, totalPayLen = 0;
+    int totalBytesRead = 0;
+    int previousPack = (int)ntohs(incPack->header.length) - 20; 
     char ip[INET_ADDRSTRLEN];
+    char* finalPayload;
+    socklen_t len;
     struct in_addr inAddr;
     inAddr.s_addr = incPack->header.srcAddr;
     if (inet_ntop(AF_INET, &(inAddr), ip, INET_ADDRSTRLEN) == NULL) {
         fprintf(stderr, "inet_ntop failed with errno: %s\n", 
                 strerror(errno));
     }
-    
-    printf("\b\bMessage received from %s: \"%s\"\n> ",
-            ip, incPack->payload);
+    allPackets[0] = *incPack;
+
+    while (1) {
+        if ((ntohs(incPack->header.fragment) & (1 << 13))) {
+            // We know there are more packets to come, realloc packet array
+            // accordingly
+            numOfPacks++;
+            allPackets = (IpPack*)realloc(allPackets, sizeof(IpPack) * 
+                    numOfPacks);
+        } else { 
+            // The last packet may have arrived before other ones, in which
+            // case, we would still need to wait for more
+            int offset = ntohs(incPack->header.fragment) & (8191);
+            offset *= 8;
+            if (offset != totalBytesRead) {
+                //More to come, since the last pack arrived before others
+                numOfPacks++;
+                allPackets = (IpPack*)realloc(allPackets, sizeof(IpPack) * 
+                    numOfPacks);
+            } else {
+                // No more packets to come, we are done compiling packets
+                break;
+            }
+        }
+        len = sizeof(senderDetails);
+        memset(&senderDetails, 0, sizeof(senderDetails));
+        memset(incPack, 0, sizeof(IpPack));
+        // Add new packet to list of packets
+        n = recvfrom(sockfd, incPack, hostData->MTU, 0, 
+                (struct sockaddr*) &senderDetails, &len);
+        if (n == 0) {
+            fprintf(stderr, "recvfrom returned 0\n");
+        }
+        totalBytesRead += previousPack;
+        previousPack = ntohs(incPack->header.length) - 20;
+        allPackets[numOfPacks - 1] = *incPack;
+    }
+
+    // Go through all packets, find out length of final, complete payload
+    for (int i = 0; i < numOfPacks; i++) {
+        totalPayLen += ntohs(allPackets[i].header.length);
+    }
+    finalPayload = (char*)calloc(totalPayLen + 1, sizeof(char));
+    // Add sub-payloads to final payload, taking into account order
+    int offset;
+    for (int i = 0; i < numOfPacks; i++) {
+        offset = ntohs(allPackets[i].header.fragment) & (8191);
+        offset *= 8;
+        strcpy(finalPayload + offset, allPackets[i].payload);
+    }
+    printf("\b\bMessage received from %s: \"%s\"\n",
+            ip, finalPayload);
+    printf("> ");
+    fflush(stdout);
+    free(finalPayload);
 }
 
 

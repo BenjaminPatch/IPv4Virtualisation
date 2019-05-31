@@ -43,7 +43,10 @@ int send_msg(struct Data* data, char* input);
 void strip_quotes(char* section, char* payload);
 
 
-void split_input(char* input, char** sections, int oneSpace, int len);
+void split_input(char* input, char** sections, int oneSpace);
+
+
+void split_input_old(char* input, char** sections, int oneSpace, int len);
 
 
 int is_in_subnet(struct Data* data, char* ip);

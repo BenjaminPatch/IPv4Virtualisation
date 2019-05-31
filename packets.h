@@ -12,6 +12,7 @@
 #define VER_HLEN 69 // version: 0100. headerLen: 0101 (no options)
 #define HEADER_LEN 20 // No options
 #define BUFFER 8192
+#define DEBUG_PACK 0
 
 typedef struct {
     int fragmented;

@@ -1,4 +1,4 @@
-CFLAGS = -Wall -pedantic -pthread
+CFLAGS = -Wall -pedantic -pthread -std=gnu99
 
 all: main.o packets.o process.o arp.o listen.o assign3
 

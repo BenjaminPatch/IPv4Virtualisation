@@ -4,6 +4,7 @@
 #include <semaphore.h>
 
 #define LONGEST_IP_WITH_NULL 16
+#define DEBUG 0
 
 struct Data {
     char* gw; // Current gateway IP

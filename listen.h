@@ -21,6 +21,6 @@ void* listen_for_message(void* data);
 void non_zero_protocol(IpPack* incPack);
 
 
-void zero_protocol(IpPack* incPack);
+void zero_protocol(IpPack* incPack, int sockfd, struct Data* hostData);
 
 #endif

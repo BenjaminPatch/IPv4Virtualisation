@@ -58,7 +58,6 @@ char* findMapping(char* ip, struct Data* data, int cliMode) {
     if (cliMode)
         printf("None\n");
     sem_wait(data->outputLock);
-    printf("No ARP entry found\n");
     fflush(stdout);
     return NULL;
 

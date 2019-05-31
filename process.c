@@ -34,7 +34,7 @@ int arp_set(char* input, struct Data* data) {
     memset(sections[2], 0, LARGEST_PORT_LEN);
 
     // Split input so we can easily access ipAddr and llAddr
-    split_input(input, sections, 0, 7);
+    split_input(input, sections, 0);
 
     // Create arp struct based on the split input
     struct Arp* newArp = (struct Arp*)malloc(sizeof(struct Arp)); 
@@ -43,7 +43,8 @@ int arp_set(char* input, struct Data* data) {
     strcpy(newArp->ipAddr, sections[1]); //try strcpy
     newArp->llAddr = sections[2];
     append_to_dict(data->arpMappings, newArp);
-    display_dict_entries(data->arpMappings);
+    if (DEBUG)
+        display_dict_entries(data->arpMappings);
 
     return 0;
 }
@@ -78,9 +79,10 @@ int mtu_set(char* input, struct Data* data) {
 
 int mtu_get(struct Data* data, int returnMode) {
     sem_wait(data->outputLock);
-    printf("%d\n", data->MTU);
     if (returnMode) {
         return data->MTU;
+    } else {
+        printf("%d\n", data->MTU);
     }
     return 0;
 }
@@ -106,7 +108,7 @@ int send_msg(struct Data* data, char* input) {
     struct sockaddr_in receiverData;
     char** sections = (char**)malloc(sizeof(char*) * 3);
     memset(sections, 0, sizeof(char*) * 3);
-    split_input(input, sections, 1, 4);
+    split_input(input, sections, 1);
 
     // Strip double-quotes 
     char payload[strlen(sections[2]) - 1];
@@ -116,6 +118,7 @@ int send_msg(struct Data* data, char* input) {
     if (is_in_subnet(data, sections[1])) {
         inet_pton(AF_INET, sections[1], &fakeIp);
         if (!findMapping(sections[1], data, 0)) {
+            printf("No ARP entry found\n");
             return 0;
         }
         port = atoi(findMapping(sections[1], data, 0));
@@ -124,10 +127,14 @@ int send_msg(struct Data* data, char* input) {
         // (a.k.a a port), if so, proceed with that as the receiver, but final
         // dst. IP still unchanged
         if (!data->gw) {
+            printf("No gateway found\n");
+            return 0;
+        }
+        inet_pton(AF_INET, sections[1], &fakeIp);
+        if (!findMapping(data->gw, data, 0)) {
             printf("No ARP entry found\n");
             return 0;
         }
-        inet_pton(AF_INET, data->gw, &fakeIp);
         port = atoi(findMapping(data->gw, data, 0));
     }
 
@@ -144,7 +151,56 @@ int send_msg(struct Data* data, char* input) {
 }
 
 
-void split_input(char* input, char** sections, int oneSpace, int len) {
+
+void split_input(char* input, char** sections, int oneSpace) {
+    int sectionCounter = 0;
+    int indexInSection = 0;
+    //int lenOfMsg = len; // The length of "msg "
+    sections[0] = (char*)malloc(sizeof(char));
+    sections[1] = (char*)malloc(sizeof(char));
+    sections[2] = (char*)malloc(sizeof(char));
+    memset(sections[0], 0, 1);
+    memset(sections[1], 0, 1);
+    memset(sections[2], 0, 1);
+    for (long unsigned i = 0; i < strlen(input) - 1; i++) {
+        //printf("%d %d\n", sectionCounter, indexInSection);
+        sections[sectionCounter] = (char*)realloc(sections[sectionCounter], 
+                sizeof(char) * (indexInSection + 2));
+        sections[sectionCounter][indexInSection + 1] = 0;
+        if (input[i] == ' ') {
+            if (oneSpace == 0) {
+                sections[sectionCounter][indexInSection] = input[i];
+                indexInSection++;
+                oneSpace++;
+                continue;
+            }
+            if (oneSpace && sectionCounter == 2) {
+                sections[sectionCounter][indexInSection] = input[i];
+                indexInSection++;
+                continue;
+            }
+            sections[sectionCounter][indexInSection] = 0;
+            sectionCounter++;
+            if (sectionCounter == 3) {
+                sectionCounter--;
+            }
+            indexInSection = 0;
+            continue;
+        } else {
+            //printf("sectionCounter: %d, indexInSection: %d, char: %c\n", 
+            //        sectionCounter, indexInSection, input[i]);
+            sections[sectionCounter][indexInSection] = input[i];
+            indexInSection++;
+        }
+    }
+    if (DEBUG) {
+    printf("sections[0]: %s\n", sections[0]);
+    printf("sections[1]: %s\n", sections[1]);
+    printf("sections[2]: %s\n", sections[2]);
+    }
+}
+
+void split_input_old(char* input, char** sections, int oneSpace, int len) {
     int sectionCounter = 0;
     int indexInSection = 0;
     int firstSpace = oneSpace;

@@ -8,7 +8,8 @@ void construct_header(IpPack* newPack, struct Data* data, uint32_t dstIp,
     newPack->header.ver_hlen = VER_HLEN; // 69 == 0100 0101
     newPack->header.service = 0;
     newPack->header.length = htons(HEADER_LEN + strlen(newPack->payload));
-    printf("length: %lu\n", (HEADER_LEN + strlen(newPack->payload)));
+    if (DEBUG_PACK) 
+        printf("length: %lu\n", (HEADER_LEN + strlen(newPack->payload)));
     newPack->header.ident = htons(data->idNum);
     if (!fragDetails.fragmented) {
         // Just set fragment and all it's flags to zero
@@ -18,12 +19,19 @@ void construct_header(IpPack* newPack, struct Data* data, uint32_t dstIp,
         // last flag.
         newPack->header.fragment = fragDetails.fragmentOffset;
         newPack->header.fragment |= fragDetails.lastFrag << 13;
+        newPack->header.fragment = htons(newPack->header.fragment);
+        if (DEBUG_PACK) {
+            printf("newPack.fragment = %u\n",newPack->header.fragment);
+            printf("lastFrag = %d\n", fragDetails.lastFrag);
+            printf("fragmentOffset: %u\n", fragDetails.fragmentOffset);
+        }
     }
 
     newPack->header.timetolive = 10;
     newPack->header.protocol = 0;
     newPack->header.checksum = 0;
     uint32_t srcAddr;
+    //printf("Host IP: %s\n", data->hostIP);
     if (inet_pton(AF_INET, data->hostIP, &(srcAddr)) == 0) {
         fprintf(stderr, "inet_pton() \n");
     }
@@ -41,6 +49,7 @@ void construct_payload(struct Data* data, char* payload,
         struct sockaddr_in receiverData, IpPack* newPack, uint32_t fakeIp) {
     int indexInPayload = 0;
     int indexInMTU = 0;
+    uint16_t idNum = 0;
     char newPayload[data->MTU - 19];
     int sockfd;
     FragDetails fragDetails;
@@ -58,11 +67,17 @@ void construct_payload(struct Data* data, char* payload,
         if (indexInMTU == (data->MTU - 20)) {
             fragDetails.fragmented = 1;
             fragDetails.lastFrag = 1;
+        } else {
+            fragDetails.lastFrag = 0;
         }
+        if (DEBUG)
+            printf("indexInMTU: %d.    data->MTU: %d\n", indexInMTU, data->MTU);
         memset(newPack->payload, 0, BUFFER);
         strcpy(newPack->payload, newPayload);
+        newPack->header.ident = htons(idNum);
+        idNum++;
         construct_header(newPack, data, fakeIp, fragDetails);
-        //printf("port sending to: %d\n", receiverData.sin_port);
+        //printf("port sending to: %d\n", ntohs(receiverData.sin_port));
         //printf("strlen: %d\n", (int)strlen(newPack->payload));
         if (sendto(sockfd, (void*)newPack, 20 + strlen(newPack->payload), 
                 0, (struct sockaddr*)&receiverData, sizeof(receiverData)) == -1) {
@@ -84,11 +99,13 @@ void create_new_payload(struct Data* data, char* newPayload, int* indexInMTU,
     while (*indexInMTU < data->MTU - 20) {
         // Add next char to new payload, iterate index on both indices
         newPayload[*indexInMTU] = payload[*indexInPayload];
-        printf("indexInMTU: %d strlen(newPayload): %d   ", *indexInMTU, 
-                (int)strlen(newPayload));
-        printf(".  payload[*indexInPayload]: %c, indexInPayload: %d     ", 
-                payload[*indexInPayload], *indexInPayload);
-        printf("newPayload: %s\n", newPayload);
+        if (DEBUG) {
+            //printf("indexInMTU: %d strlen(newPayload): %d   ", *indexInMTU, 
+                    //(int)strlen(newPayload));
+            //printf(".  payload[*indexInPayload]: %c, indexInPayload: %d     ", 
+                    //payload[*indexInPayload], *indexInPayload);
+            //printf("newPayload: %s\n", newPayload);
+        }
         
         *(indexInPayload) = *indexInPayload + 1;
         if (*indexInPayload >= (int)strlen(payload)) {
@@ -97,7 +114,9 @@ void create_new_payload(struct Data* data, char* newPayload, int* indexInMTU,
         }
         *(indexInMTU) = *indexInMTU + 1;
     }
-    printf("indexInMTU: %d strlen(newPayload): %d\n", *indexInMTU, 
-            (int)strlen(newPayload));
-    printf("yeet: %d\n", newPayload[*(indexInMTU)]);
+    if (DEBUG) {
+        printf("indexInMTU: %d strlen(newPayload): %d\n", *indexInMTU, 
+                (int)strlen(newPayload));
+        printf("yeet: %d\n", newPayload[*(indexInMTU)]);
+    }
 }
